@@ -55,7 +55,7 @@ class _OtpVerifyPageState extends State<OtpVerifyPage> {
                 widget.email,
                 OtpType.email,
               );
-              debugPrint(_auth.fetchUserData().toString());
+              debugPrint(_auth.logUserData().toString());
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (_) => const HomePage(),

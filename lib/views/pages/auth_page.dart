@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:form_helpers/form_helpers.dart';
 import 'package:subabase_auth/controller/supabase_auth.dart';
+import 'package:subabase_auth/models/user_model.dart';
 import 'package:subabase_auth/views/pages/home_page.dart';
 import 'package:subabase_auth/views/pages/otp_verify_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -66,9 +67,11 @@ class _AuthPageState extends State<AuthPage> {
         onSignupPressed: () async {
           if (_formKey.currentState!.validate()) {
             await _auth.signUp(
-              _emailController.text,
-              _passwordController.text,
-              _nameController.text,
+              AppUser(
+                email: _emailController.text,
+                password: _passwordController.text,
+                name: _nameController.text,
+              ),
             );
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -82,11 +85,13 @@ class _AuthPageState extends State<AuthPage> {
         onLoginPressed: () async {
           if (_formKey.currentState!.validate()) {
             await _auth.signIn(
-              _emailController.text,
-              _passwordController.text,
+              AppUser(
+                email: _emailController.text,
+                password: _passwordController.text,
+              ),
             );
             _formKey.currentState!.reset();
-            debugPrint(_auth.fetchUserData().toString());
+            debugPrint(_auth.logUserData().toString());
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
                 builder: (_) => const HomePage(),

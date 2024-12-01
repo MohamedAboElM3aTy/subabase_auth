@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:subabase_auth/controller/supabase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,43 +21,42 @@ class UserImagePicker extends StatefulWidget {
 }
 
 class _UserImagePickerState extends State<UserImagePicker> {
-  File? _chooseImage;
+  File? _chosenImage;
   final SupabaseAuth _auth = SupabaseAuthImplementation();
   final storage = Supabase.instance.client.storage;
 
-  Future<File> file(String filename) async {
-    Directory dir = await getApplicationDocumentsDirectory();
-    String pathName = p.join(dir.path, filename);
-    return File(pathName);
-  }
-
-  void _pickImage() async {
+  Future<void> _uploadImage() async {
     final pickedImage = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 50,
     );
-    if (pickedImage == null) return;
 
     final userId = _auth.getCurrentUser()?.id;
-    if (userId == null) return;
 
-    // Upload image to Supabase storage
-    final fileName = 'images/$userId/${pickedImage.path.split('/').last}';
+    if (pickedImage == null || userId == null) return;
+
+    final imagePath = 'images/$userId/${pickedImage.path.split('/').last}';
+
+    await _uploadToStorage(path: imagePath, filePath: pickedImage.path);
+
+    setState(() {
+      _chosenImage = File(pickedImage.path);
+      widget.onSelectImage(_chosenImage!);
+    });
+  }
+
+  Future<void> _uploadToStorage({
+    required String path,
+    required String filePath,
+  }) async {
     await storage.from('images').upload(
-          fileName,
-          File(pickedImage.path),
+          path,
+          File(filePath),
           fileOptions: const FileOptions(
             upsert: false,
             cacheControl: '3600',
           ),
         );
-
-    setState(
-      () {
-        _chooseImage = File(pickedImage.path);
-        widget.onSelectImage(_chooseImage!);
-      },
-    );
   }
 
   @override
@@ -71,8 +68,8 @@ class _UserImagePickerState extends State<UserImagePicker> {
             CircleAvatar(
               radius: 70,
               backgroundColor: Colors.grey,
-              backgroundImage: _chooseImage != null
-                  ? FileImage(_chooseImage!)
+              backgroundImage: _chosenImage != null
+                  ? FileImage(_chosenImage!)
                   : widget.image != null
                       ? CachedNetworkImageProvider(widget.image!)
                       : const AssetImage('assets/logo.jpeg') as ImageProvider,
@@ -94,8 +91,8 @@ class _UserImagePickerState extends State<UserImagePicker> {
                   ),
                 ),
                 child: InkWell(
-                  onTap: _pickImage,
-                  child: _chooseImage != null
+                  onTap: _uploadImage,
+                  child: _chosenImage != null
                       ? const Icon(
                           Icons.edit,
                           size: 25,

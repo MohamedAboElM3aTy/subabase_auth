@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:subabase_auth/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client;
 
 abstract class SupabaseAuth {
-  Future<User?> signUp(String email, String password, String userName);
+  Future<User?> signUp(AppUser user);
 
-  Future<User?> signIn(String email, String password);
+  Future<User?> signIn(AppUser user);
 
   Future<void> signOut();
 
-  Map<String, dynamic> fetchUserData();
+  Map<String, dynamic> logUserData();
 
   User? getCurrentUser();
 
@@ -19,17 +20,13 @@ abstract class SupabaseAuth {
 
 class SupabaseAuthImplementation implements SupabaseAuth {
   @override
-  Future<User?> signUp(
-    String email,
-    String password,
-    String userName,
-  ) async {
+  Future<User?> signUp(AppUser user) async {
     try {
       final userAuth = await supabase.auth.signUp(
-        email: email,
-        password: password,
+        email: user.email,
+        password: user.password,
         data: {
-          'name': userName,
+          'name': user.name,
         },
       );
       return userAuth.user;
@@ -40,19 +37,24 @@ class SupabaseAuthImplementation implements SupabaseAuth {
   }
 
   @override
-  Future<User?> signIn(String email, String password) async {
-    final userAuth = await supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-    return userAuth.user;
+  Future<User?> signIn(AppUser user) async {
+    try {
+      final userAuth = await supabase.auth.signInWithPassword(
+        email: user.email,
+        password: user.password,
+      );
+      return userAuth.user;
+    } on Exception catch (error) {
+      debugPrint(error.toString());
+    }
+    return null;
   }
 
   @override
   Future<void> signOut() async => await supabase.auth.signOut();
 
   @override
-  Map<String, dynamic> fetchUserData() => supabase.auth.currentUser!.toJson();
+  Map<String, dynamic> logUserData() => supabase.auth.currentUser!.toJson();
 
   @override
   Future<User?> verifyOtp(
@@ -61,9 +63,12 @@ class SupabaseAuthImplementation implements SupabaseAuth {
     OtpType type,
   ) async {
     try {
-      final result =
-          await supabase.auth.verifyOTP(type: type, email: email, token: token);
-      return result.user;
+      final supabaseResponse = await supabase.auth.verifyOTP(
+        type: type,
+        email: email,
+        token: token,
+      );
+      return supabaseResponse.user;
     } on Exception catch (error) {
       debugPrint(error.toString());
     }
